@@ -203,9 +203,34 @@ else:
     print("Please run METHOD A or METHOD B in Step 4 first")
     raise FileNotFoundError("colab_data.zip not found")
 
+# Verify file integrity
+print("\nVerifying file...")
+file_size = os.path.getsize('/content/colab_data.zip')
+file_size_mb = file_size / (1024*1024)
+print(f"File size: {file_size_mb:.1f} MB")
+
+# Check if it's actually a zip file (magic number check)
+with open('/content/colab_data.zip', 'rb') as f:
+    header = f.read(4)
+    is_zip = header[:2] == b'PK'  # ZIP files start with 'PK'
+    print(f"ZIP magic number: {'✅ Valid' if is_zip else '❌ Invalid'}")
+
+if not is_zip:
+    print("\n❌ ERROR: File is not a valid ZIP file!")
+    print("\nPossible causes:")
+    print("1. File got corrupted during upload to Google Drive")
+    print("2. Google Drive is still processing the file (try waiting a minute)")
+    print("3. Wrong file was selected")
+    print("\n🔧 SOLUTIONS:")
+    print("Option 1: Re-upload colab_data.zip to Google Drive")
+    print("Option 2: Use METHOD A to upload directly from your computer")
+    print("Option 3: Check the file on your local machine is valid (try opening it)")
+    raise ValueError("Invalid ZIP file")
+
 # Extract zip contents
 print("\nExtracting data...")
 try:
+    # Try Python's zipfile first
     with zipfile.ZipFile('/content/colab_data.zip', 'r') as zip_ref:
         file_list = zip_ref.namelist()
         print(f"Zip contains {len(file_list)} files")
@@ -214,16 +239,36 @@ try:
         zip_ref.extractall('/content/EEG-project/')
         print("✅ Extraction complete")
         
-except zipfile.BadZipFile:
-    print("❌ ERROR: Invalid zip file!")
-    raise
+except zipfile.BadZipFile as e:
+    print("❌ Python zipfile failed, trying system unzip command...")
+    
+    # Fallback: Try system unzip command (more robust)
+    result = !unzip -q /content/colab_data.zip -d /content/EEG-project/ 2>&1
+    
+    if any('error' in line.lower() or 'invalid' in line.lower() for line in result):
+        print("❌ System unzip also failed!")
+        print("\nUnzip output:")
+        for line in result:
+            print(f"  {line}")
+        
+        print("\n🔧 The file appears to be corrupted.")
+        print("\nRECOMMENDED FIX:")
+        print("1. On your LOCAL computer, verify colab_data.zip opens correctly")
+        print("2. Delete the file from Google Drive")
+        print("3. Re-upload colab_data.zip to Google Drive")
+        print("4. OR use METHOD A to upload directly from your computer")
+        raise
+    else:
+        print("✅ Extraction successful using system unzip")
+        
 except Exception as e:
-    print(f"❌ ERROR during extraction: {e}")
+    print(f"❌ Unexpected error: {e}")
     raise
 
 # Clean up (free space)
-os.remove('/content/colab_data.zip')
-print("✅ Cleanup complete")
+if os.path.exists('/content/colab_data.zip'):
+    os.remove('/content/colab_data.zip')
+    print("✅ Cleanup complete")
 print("="*70 + "\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
