@@ -76,54 +76,141 @@ if not all(code_check.values()):
 print("="*70 + "\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# STEP 4: Upload Data File (colab_data.zip contains ONLY data/processed/)
+# STEP 4: Get Data File - Choose ONE method (A or B)
 # ═══════════════════════════════════════════════════════════════════════════
-from google.colab import files
 
+# ──────────────────────────────────────────────────────────────────────────
+# METHOD A: Upload from Computer (if you don't have it on Drive yet)
+# ──────────────────────────────────────────────────────────────────────────
+# from google.colab import files
+# import os
+#
+# print("="*70)
+# print("UPLOAD DATA FILE FROM COMPUTER")
+# print("="*70)
+# print("Select: colab_data.zip (~287MB)")
+# print("Upload time: 2-5 minutes")
+# print("="*70 + "\n")
+#
+# os.chdir('/content')
+# uploaded = files.upload()
+#
+# if 'colab_data.zip' not in uploaded:
+#     raise FileNotFoundError("Please upload colab_data.zip")
+#
+# file_size_mb = len(uploaded['colab_data.zip']) / (1024*1024)
+# print(f"\n✅ Upload successful! Size: {file_size_mb:.1f} MB")
+
+# ──────────────────────────────────────────────────────────────────────────
+# METHOD B: Use File Already on Google Drive (RECOMMENDED - No re-upload!)
+# ──────────────────────────────────────────────────────────────────────────
+from google.colab import drive
+import os
+import shutil
+
+# Mount Drive first
 print("="*70)
-print("UPLOAD DATA FILE")
+print("METHOD B: Using file from Google Drive")
 print("="*70)
-print("In the file picker:")
-print("1. Navigate to: channel expansion/")
-print("2. Select: colab_data.zip (~287MB)")
-print("3. Click 'Open' and wait for upload (2-5 minutes)")
+print("Mounting Google Drive...")
+drive.mount('/content/drive')
+print("✅ Drive mounted\n")
+
+# Interactive file picker for Drive
 print("="*70)
-print("\n[File picker will appear below]")
+print("SELECT FILE FROM GOOGLE DRIVE")
+print("="*70)
+print("A file browser will appear below.")
+print("Navigate to your file and click to select it.")
 print("="*70 + "\n")
 
-# Upload to /content (Colab's working directory)
-os.chdir('/content')
-uploaded = files.upload()
+# Use Colab's file picker for Drive
+from google.colab import files
+import ipywidgets as widgets
+from IPython.display import display
 
-# Verify upload
-if 'colab_data.zip' not in uploaded:
-    print("\n❌ ERROR: Wrong file uploaded!")
-    print("Expected: colab_data.zip")
-    print(f"Got: {list(uploaded.keys())}")
-    raise FileNotFoundError("Please upload colab_data.zip")
+# Create file browser
+def find_zip_files(drive_path='/content/drive/MyDrive'):
+    """Find all .zip files in Drive"""
+    import os
+    zip_files = []
+    for root, dirs, filenames in os.walk(drive_path):
+        for filename in filenames:
+            if filename.endswith('.zip'):
+                full_path = os.path.join(root, filename)
+                size_mb = os.path.getsize(full_path) / (1024*1024)
+                # Only show files that look like our data file (200-300 MB)
+                if 200 < size_mb < 400:
+                    relative = full_path.replace('/content/drive/MyDrive/', '')
+                    zip_files.append((f"{relative} ({size_mb:.1f} MB)", full_path))
+    return zip_files
 
-file_size_mb = len(uploaded['colab_data.zip']) / (1024*1024)
-print(f"\n✅ Upload successful!")
-print(f"   File: colab_data.zip")
-print(f"   Size: {file_size_mb:.1f} MB")
+print("Scanning Google Drive for zip files (200-400 MB)...\n")
+zip_files = find_zip_files()
 
-# ═══════════════════════════════════════════════════════════════════════════
-# STEP 5: Extract Data into Project Directory
-# ═══════════════════════════════════════════════════════════════════════════
-print("\n" + "="*70)
-print("Extracting data...")
+if not zip_files:
+    print("❌ No suitable zip files found in Google Drive!")
+    print("\nOptions:")
+    print("1. Upload colab_data.zip to Google Drive first")
+    print("2. OR use METHOD A above to upload from computer")
+    raise FileNotFoundError("No zip files found in Drive")
+
+# Create dropdown with found files
+print(f"Found {len(zip_files)} zip file(s):\n")
+dropdown = widgets.Dropdown(
+    options=zip_files,
+    description='Select file:',
+    style={'description_width': 'initial'},
+    layout=widgets.Layout(width='80%')
+)
+display(dropdown)
+
+print("\n👆 Select your file from the dropdown above, then run the next cell")
 print("="*70)
 
-import zipfile
+# Store selection for next cell
+selected_file_path = dropdown.value
 
+# ═══════════════════════════════════════════════════════════════════════════
+# STEP 5: Copy & Extract Data (works with both METHOD A and METHOD B)
+# ═══════════════════════════════════════════════════════════════════════════
+import os
+import zipfile
+import shutil
+
+print("\n" + "="*70)
+print("Processing data file...")
+print("="*70)
+
+# Determine source file location
+if 'selected_file_path' in globals():
+    # METHOD B: File from Drive
+    source_file = selected_file_path
+    print(f"Source: {source_file}")
+    
+    # Copy to /content for faster extraction
+    print("Copying from Drive to local workspace...")
+    shutil.copy(source_file, '/content/colab_data.zip')
+    print("✅ Copy complete")
+    
+elif os.path.exists('/content/colab_data.zip'):
+    # METHOD A: Already uploaded
+    source_file = '/content/colab_data.zip'
+    print(f"Source: Uploaded file")
+    
+else:
+    print("❌ ERROR: No data file found!")
+    print("Please run METHOD A or METHOD B in Step 4 first")
+    raise FileNotFoundError("colab_data.zip not found")
+
+# Extract zip contents
+print("\nExtracting data...")
 try:
-    # Extract zip contents to project directory
     with zipfile.ZipFile('/content/colab_data.zip', 'r') as zip_ref:
-        # List contents
         file_list = zip_ref.namelist()
         print(f"Zip contains {len(file_list)} files")
         
-        # Extract to project
+        # Extract to project directory
         zip_ref.extractall('/content/EEG-project/')
         print("✅ Extraction complete")
         
@@ -134,7 +221,7 @@ except Exception as e:
     print(f"❌ ERROR during extraction: {e}")
     raise
 
-# Clean up zip file (free up space)
+# Clean up (free space)
 os.remove('/content/colab_data.zip')
 print("✅ Cleanup complete")
 print("="*70 + "\n")
