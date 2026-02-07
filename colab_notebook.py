@@ -272,7 +272,7 @@ if os.path.exists('/content/colab_data.zip'):
 print("="*70 + "\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# STEP 6: Verify Data
+# STEP 6: Verify Data (with auto-fix for different folder structures)
 # ═══════════════════════════════════════════════════════════════════════════
 os.chdir('/content/EEG-project')
 
@@ -280,20 +280,90 @@ print("="*70)
 print("Verifying data integrity...")
 print("="*70)
 
-data_dir = 'data/processed'
-if not os.path.exists(data_dir):
-    print(f"❌ ERROR: {data_dir} not found!\n")
-    print("Directory structure in data/:")
+# First, check what was actually extracted
+print("\nChecking extracted files...")
+!find . -name "*.npz" -type f | head -20
+
+# Expected path
+expected_dir = 'data/processed'
+
+# Check if data directory exists at all
+if not os.path.exists('data'):
+    print("\n⚠️  'data/' directory not found. Checking what was extracted...")
+    
+    # Find where the .npz files actually are
+    import subprocess
+    result = subprocess.run(['find', '.', '-name', '*.npz', '-type', 'f'], 
+                          capture_output=True, text=True)
+    npz_files = [f.strip() for f in result.stdout.split('\n') if f.strip()]
+    
+    if npz_files:
+        print(f"Found {len(npz_files)} .npz files in unexpected location")
+        
+        # Detect the actual structure
+        first_file = npz_files[0]
+        print(f"Example file: {first_file}")
+        
+        # Extract directory structure
+        if 'processed/' in first_file:
+            # Files are in a processed folder somewhere
+            actual_dir = first_file.split('processed/')[0] + 'processed'
+            actual_dir = actual_dir.lstrip('./')
+            
+            print(f"\n🔧 Files found in: {actual_dir}")
+            print(f"   Expected: {expected_dir}")
+            print(f"   Fixing structure...")
+            
+            # Create proper directory structure
+            os.makedirs('data', exist_ok=True)
+            
+            # Move files to correct location
+            import shutil
+            if actual_dir != expected_dir:
+                if os.path.exists(actual_dir):
+                    shutil.move(actual_dir, expected_dir)
+                    print(f"✅ Moved {actual_dir} → {expected_dir}")
+        else:
+            # Files are loose - need to organize them
+            print("\n🔧 Files are not in 'processed/' folder. Organizing...")
+            
+            os.makedirs(expected_dir, exist_ok=True)
+            
+            # Move all .npz files to data/processed/
+            for npz_file in npz_files:
+                filename = os.path.basename(npz_file)
+                dest = os.path.join(expected_dir, filename)
+                shutil.move(npz_file, dest)
+            
+            print(f"✅ Moved {len(npz_files)} files to {expected_dir}/")
+    else:
+        print("❌ No .npz files found anywhere!")
+        print("\nZip contents:")
+        !ls -R
+        raise FileNotFoundError("No preprocessed data files found in zip")
+
+# Now verify the correct directory exists
+if not os.path.exists(expected_dir):
+    print(f"❌ ERROR: {expected_dir} still not found after fix attempt!")
+    print("\nCurrent directory structure:")
     !ls -R data/
-    raise FileNotFoundError(f"{data_dir} missing")
+    raise FileNotFoundError(f"{expected_dir} missing")
 
 # Count .npz files
-npz_files = [f for f in os.listdir(data_dir) if f.endswith('.npz')]
-print(f"✅ Found {len(npz_files)} preprocessed subject files")
+npz_files = [f for f in os.listdir(expected_dir) if f.endswith('.npz')]
+num_subjects = len(npz_files)
+
+print(f"\n✅ Found {num_subjects} preprocessed subject files")
+
+if num_subjects == 0:
+    print("❌ ERROR: No .npz files in data/processed/")
+    print("\nDirectory contents:")
+    !ls -lh {expected_dir}
+    raise FileNotFoundError("No .npz files found")
 
 # Load statistics if available
 import json
-stats_file = f'{data_dir}/preprocessing_stats.json'
+stats_file = f'{expected_dir}/preprocessing_stats.json'
 if os.path.exists(stats_file):
     with open(stats_file) as f:
         stats = json.load(f)
