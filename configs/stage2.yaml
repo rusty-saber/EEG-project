@@ -1,0 +1,51 @@
+# Stage 2: Fine-tuning with unfrozen encoder
+# Inherits from base.yaml
+
+defaults:
+  - base
+
+stage: 2
+freeze_encoder: false
+
+training:
+  epochs: 30
+  batch_size: 8  # Reduced for full backprop
+  gradient_accumulation: 4  # effective batch = 32
+  mixed_precision: true
+  gradient_clip_max_norm: 1.0
+
+# Differential learning rates
+optimizer:
+  name: AdamW
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+  param_groups:
+    - name: encoder
+      lr: 1.0e-6  # 100x lower for pretrained encoder
+    - name: expansion
+      lr: 1.0e-5
+    - name: decoder
+      lr: 1.0e-5
+
+scheduler:
+  name: CosineAnnealingLR
+  T_max: 30
+  eta_min: 1.0e-7
+
+loss:
+  time_domain_weight: 1.0
+  spectral_weight: 0.5
+  correlation_weight: 0.3
+  time_domain_type: smooth_l1
+
+early_stopping:
+  enabled: true
+  patience: 8
+  metric: val_pearson_mean
+  mode: max
+  min_delta: 0.001
+
+# Regularization
+regularization:
+  dropout: 0.1
+  encoder_dropout: 0.0  # Don't add dropout to pretrained encoder

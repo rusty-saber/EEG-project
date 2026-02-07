@@ -1,0 +1,39 @@
+# Stage 1: Frozen encoder training
+# Inherits from base.yaml
+
+defaults:
+  - base
+
+stage: 1
+freeze_encoder: true
+
+training:
+  epochs: 50
+  batch_size: 16
+  gradient_accumulation: 2  # effective batch = 32
+  mixed_precision: true
+
+optimizer:
+  name: AdamW
+  lr: 1.0e-4
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+scheduler:
+  name: CosineAnnealingLR
+  T_max: 50
+  eta_min: 1.0e-6
+  warmup_steps: 500
+
+loss:
+  time_domain_weight: 1.0
+  spectral_weight: 0.5
+  correlation_weight: 0.3
+  time_domain_type: smooth_l1  # smooth_l1 or mse
+
+early_stopping:
+  enabled: true
+  patience: 10
+  metric: val_pearson_mean
+  mode: max
+  min_delta: 0.001

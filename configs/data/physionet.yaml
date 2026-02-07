@@ -1,0 +1,44 @@
+# PhysioNet Config
+dataset:
+  name: physionet
+  num_subjects: 109
+
+channels:
+  input: [Fz, Cz, Pz, Oz]
+  target: [Fp1, Fp2, F3, F4, C3, C4, P3, P4]
+
+augmentation:
+  enabled: true
+
+early_stopping:
+  metric: val_pearson
+  mode: max
+  patience: 10
+
+training:
+  batch_size: 16
+  epochs: 100
+  learning_rate: 1e-4
+
+# Preprocessing
+preprocessing:
+  target_sample_rate: 200
+  segment_length_sec: 10.0
+  segment_overlap_sec: 5.0
+  filter_low: 0.5
+  filter_high: 45.0
+  artifact_threshold: 150.0
+  flat_threshold: 0.1
+
+reve:
+  model_name: brain-bzh/reve-base
+  hidden_dim: 512
+  patch_size: 200
+  patch_stride: 180
+
+stage: 1
+device: cuda
+
+
+num_input_channels: 4
+num_target_channels: 8

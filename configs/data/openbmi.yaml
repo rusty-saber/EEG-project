@@ -1,0 +1,28 @@
+# OpenBMI Dataset configuration (for cross-dataset validation)
+
+dataset:
+  name: openbmi
+  full_name: "OpenBMI Motor Imagery Dataset"
+  url: "https://gigadb.org/dataset/100542"
+  
+  # Data properties
+  original_sample_rate: 1000  # Hz
+  target_sample_rate: 200  # Hz (will downsample)
+  num_channels: 62
+  num_subjects: 54
+  
+  # File format
+  file_format: mat
+  file_pattern: "sess01_subj{subject:02d}_EEG_MI.mat"
+
+# All subjects used for test only (cross-dataset validation)
+splits:
+  test:
+    start: 1
+    end: 54
+
+# Preprocessing
+preprocessing:
+  artifact_threshold_uv: 100
+  flat_threshold_uv: 0.1
+  line_noise_threshold_std: 3

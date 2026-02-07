@@ -1,0 +1,39 @@
+# Channel configuration: 4 midline → 8 bilateral
+# Primary configuration for ANTIGRAVITY
+
+# Input channels (4 midline electrodes)
+input_channels:
+  - Fz
+  - Cz
+  - Pz
+  - Oz
+
+# Target channels (8 bilateral electrodes)
+target_channels:
+  - Fp1
+  - Fp2
+  - F3
+  - F4
+  - C3
+  - C4
+  - P3
+  - P4
+
+# All channels needed (for loading from raw data)
+all_channels:
+  - Fz
+  - Cz
+  - Pz
+  - Oz
+  - Fp1
+  - Fp2
+  - F3
+  - F4
+  - C3
+  - C4
+  - P3
+  - P4
+
+# Dimensions
+num_input_channels: 4
+num_target_channels: 8

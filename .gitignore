@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Data directories (large files)
+data/raw/
+data/processed/
+*.edf
+*.mat
+*.npz
+*.npy
+
+# Output directories
+outputs/
+*.pt
+*.pth
+*.ckpt
+
+# Logs
+*.log
+tensorboard/
+wandb/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.key
+
+# Downloaded models cache
+.cache/
